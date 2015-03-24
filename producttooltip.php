@@ -36,12 +36,14 @@ class ProductToolTip extends Module
 		$this->version = '1.3.1';
 		$this->author = 'PrestaShop';
 		$this->need_instance = 0;
+		$this->ps_versions_compliancy = array('min' => '1.6', 'max' => _PS_VERSION_); 
 
 		$this->bootstrap = true;
 		parent::__construct();
 
 		$this->displayName = $this->l('Product tooltips');
 		$this->description = $this->l('Shows information on a product page: how many people are viewing it, the last time it was sold and the last time it was added to a cart.');
+		$this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
 	}
 
 	public function install()
@@ -55,6 +57,8 @@ class ProductToolTip extends Module
 		Configuration::updateValue('PS_PTOOLTIP_DATE_ORDER', 1);
 		Configuration::updateValue('PS_PTOOLTIP_DAYS', 3);
 		Configuration::updateValue('PS_PTOOLTIP_LIFETIME', 30);
+		/* added by me */
+		Configuration::updateValue('PS_PTOOLTIP_CART_PEOPLE', 1);
 
 		return $this->registerHook('header') && $this->registerHook('productfooter');
 	}
@@ -66,6 +70,8 @@ class ProductToolTip extends Module
 			|| !Configuration::deleteByName('PS_PTOOLTIP_DATE_ORDER')
 			|| !Configuration::deleteByName('PS_PTOOLTIP_DAYS')
 			|| !Configuration::deleteByName('PS_PTOOLTIP_LIFETIME')
+			/* added by me */
+			|| !Configuration::deleteByName('PS_PTOOLTIP_CART_PEOPLE')
 			|| !parent::uninstall()
 		)
 			return false;
@@ -84,6 +90,8 @@ class ProductToolTip extends Module
 			Configuration::updateValue('PS_PTOOLTIP_DATE_ORDER', (int)Tools::getValue('PS_PTOOLTIP_DATE_ORDER'));
 			Configuration::updateValue('PS_PTOOLTIP_DAYS', ((int)(Tools::getValue('PS_PTOOLTIP_DAYS') < 0 ? 0 : (int)Tools::getValue('PS_PTOOLTIP_DAYS'))));
 			Configuration::updateValue('PS_PTOOLTIP_LIFETIME', ((int)(Tools::getValue('PS_PTOOLTIP_LIFETIME') < 0 ? 0 : (int)Tools::getValue('PS_PTOOLTIP_LIFETIME'))));
+			/* added by me */
+			Configuration::updateValue('PS_PTOOLTIP_CART_PEOPLE', (int)Tools::getValue('PS_PTOOLTIP_CART_PEOPLE'));
 
 			$html .= $this->displayConfirmation($this->l('Settings updated'));
 		}
@@ -101,7 +109,14 @@ class ProductToolTip extends Module
 	public function hookProductFooter($params)
 	{
 		$id_product = (int)$params['product']->id;
-
+		
+		/*
+		 * $id_cart=array( Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow('
+		 * SELECT id_cart
+			FROM '._DB_PREFIX_.'cart_product
+			WHERE id_product ='.(int)$id_product)));
+		 * $id_customer;
+		  	*/
 		/* First we try to display the number of people who are currently watching this product page */
 		if (Configuration::get('PS_PTOOLTIP_PEOPLE'))
 		{
@@ -111,12 +126,24 @@ class ProductToolTip extends Module
 			SELECT COUNT(DISTINCT(id_connections)) nb
 			FROM '._DB_PREFIX_.'page p
 			LEFT JOIN '._DB_PREFIX_.'connections_page cp ON (p.id_page = cp.id_page)
-			WHERE p.id_page_type = 1 AND p.id_object = '.(int)$id_product.' AND cp.time_start > \''.pSQL($date).'\'');
+			WHERE p.id_page_type = 3 AND p.id_object = '.(int)$id_product.' AND cp.time_start > \''.pSQL($date).'\'');
 
 			if (isset($nb_people['nb']) && $nb_people['nb'] > 0)
 				$this->smarty->assign('nb_people', (int)$nb_people['nb']);
 		}
 
+		/* No of people added this prodect in cart */
+		if (Configuration::get('PS_PTOOLTIP_CART_PEOPLE'))
+		{
+			$cart_people = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow('
+			SELECT SUM(cp.quantity) cq
+			FROM '._DB_PREFIX_.'cart_product cp
+			WHERE cp.id_product = '.(int)$id_product);
+			
+			if (isset($cart_people['cq']) && $cart_people['cq'] >0)
+					$this->smarty->assign('cart_people', (int)$cart_people['cq']);
+		}
+		
 		/* Then, we try to display last sale */
 		if (Configuration::get('PS_PTOOLTIP_DATE_ORDER'))
 		{
@@ -138,17 +165,19 @@ class ProductToolTip extends Module
 				if (Configuration::get('PS_PTOOLTIP_DATE_CART'))
 				{
 					$cart = Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow('
-					SELECT cp.date_add
+					SELECT cp.date_add 
 					FROM '._DB_PREFIX_.'cart_product cp
 					WHERE cp.id_product = '.(int)$id_product);
 
-					if (isset($cart['date_add']) && Validate::isDateFormat($cart['date_add']) && $cart['date_add'] != '0000-00-00 00:00:00')
+					if (isset($cart['date_add']) && Validate::isDateFormat($cart['date_addPS_PTOOLTIP_DATE_CART']) && $cart['date_add'] != '0000-00-00 00:00:00')
 						$this->smarty->assign('date_last_cart', $cart['date_add']);
 				}
+				
+
 			}
 		}
 
-		if ((isset($nb_people['nb']) && $nb_people['nb'] > 0) || isset($order['date_add']) || isset($cart['date_add']))
+		if ((isset($nb_people['nb']) && $nb_people['nb'] > 0) || (isset($cart_people['cq']) && $cart_people['cq'] >0) || isset($order['date_add']) || isset($cart['date_add']))
 			return $this->display(__FILE__, 'producttooltip.tpl');
 	}
 
@@ -236,6 +265,27 @@ class ProductToolTip extends Module
 							)
 						),
 					),
+					//added by me
+					array(
+						'type' => 'switch',
+						'label' => $this->l('People added to a cart'),
+						'desc' => $this->l('Display the number of people who added product to a cart.'),
+						'name' => 'PS_PTOOLTIP_CART_PEOPLE',
+						'values' => array(
+							array(
+								'id' => 'active_on',
+								'value' => 1,
+								'label' => $this->l('Enabled')
+							),
+							array(
+								'id' => 'active_off',
+								'value' => 0,
+								'label' => $this->l('Disabled')
+							)
+						),
+					),
+					
+					
 					array(
 						'type' => 'text',
 						'label' => $this->l('Do not display events older than'),
@@ -278,6 +328,7 @@ class ProductToolTip extends Module
 			'PS_PTOOLTIP_DATE_ORDER' => Tools::getValue('PS_PTOOLTIP_DATE_ORDER', Configuration::get('PS_PTOOLTIP_DATE_ORDER')),
 			'PS_PTOOLTIP_DATE_CART' => Tools::getValue('PS_PTOOLTIP_DATE_CART', Configuration::get('PS_PTOOLTIP_DATE_CART')),
 			'PS_PTOOLTIP_DAYS' => Tools::getValue('PS_PTOOLTIP_DAYS', Configuration::get('PS_PTOOLTIP_DAYS')),
+			'PS_PTOOLTIP_CART_PEOPLE' => Tools::getValue('PS_PTOOLTIP_CART_PEOPLE', Configuration::get('PS_PTOOLTIP_CART_PEOPLE')),
 		);
 	}
 }
