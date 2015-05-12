@@ -57,7 +57,6 @@ class ProductToolTip extends Module
 		Configuration::updateValue('PS_PTOOLTIP_DATE_ORDER', 1);
 		Configuration::updateValue('PS_PTOOLTIP_DAYS', 3);
 		Configuration::updateValue('PS_PTOOLTIP_LIFETIME', 30);
-		/* added by me */
 		Configuration::updateValue('PS_PTOOLTIP_CART_PEOPLE', 1);
 
 		return $this->registerHook('header') && $this->registerHook('productfooter');
@@ -70,7 +69,6 @@ class ProductToolTip extends Module
 			|| !Configuration::deleteByName('PS_PTOOLTIP_DATE_ORDER')
 			|| !Configuration::deleteByName('PS_PTOOLTIP_DAYS')
 			|| !Configuration::deleteByName('PS_PTOOLTIP_LIFETIME')
-			/* added by me */
 			|| !Configuration::deleteByName('PS_PTOOLTIP_CART_PEOPLE')
 			|| !parent::uninstall()
 		)
