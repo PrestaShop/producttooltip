@@ -90,7 +90,6 @@ class ProductToolTip extends Module
 			Configuration::updateValue('PS_PTOOLTIP_DATE_ORDER', (int)Tools::getValue('PS_PTOOLTIP_DATE_ORDER'));
 			Configuration::updateValue('PS_PTOOLTIP_DAYS', ((int)(Tools::getValue('PS_PTOOLTIP_DAYS') < 0 ? 0 : (int)Tools::getValue('PS_PTOOLTIP_DAYS'))));
 			Configuration::updateValue('PS_PTOOLTIP_LIFETIME', ((int)(Tools::getValue('PS_PTOOLTIP_LIFETIME') < 0 ? 0 : (int)Tools::getValue('PS_PTOOLTIP_LIFETIME'))));
-			/* added by me */
 			Configuration::updateValue('PS_PTOOLTIP_CART_PEOPLE', (int)Tools::getValue('PS_PTOOLTIP_CART_PEOPLE'));
 
 			$html .= $this->displayConfirmation($this->l('Settings updated'));
@@ -109,14 +108,7 @@ class ProductToolTip extends Module
 	public function hookProductFooter($params)
 	{
 		$id_product = (int)$params['product']->id;
-		
-		/*
-		 * $id_cart=array( Db::getInstance(_PS_USE_SQL_SLAVE_)->getRow('
-		 * SELECT id_cart
-			FROM '._DB_PREFIX_.'cart_product
-			WHERE id_product ='.(int)$id_product)));
-		 * $id_customer;
-		  	*/
+	
 		/* First we try to display the number of people who are currently watching this product page */
 		if (Configuration::get('PS_PTOOLTIP_PEOPLE'))
 		{
@@ -169,7 +161,7 @@ class ProductToolTip extends Module
 					FROM '._DB_PREFIX_.'cart_product cp
 					WHERE cp.id_product = '.(int)$id_product);
 
-					if (isset($cart['date_add']) && Validate::isDateFormat($cart['date_addPS_PTOOLTIP_DATE_CART']) && $cart['date_add'] != '0000-00-00 00:00:00')
+					if (isset($cart['date_add']) && Validate::isDateFormat($cart['date_add']) && $cart['date_add'] != '0000-00-00 00:00:00')
 						$this->smarty->assign('date_last_cart', $cart['date_add']);
 				}
 				
@@ -265,7 +257,6 @@ class ProductToolTip extends Module
 							)
 						),
 					),
-					//added by me
 					array(
 						'type' => 'switch',
 						'label' => $this->l('People added to a cart'),
