@@ -111,7 +111,7 @@ class ProductToolTip extends Module
 			SELECT COUNT(DISTINCT(id_connections)) nb
 			FROM '._DB_PREFIX_.'page p
 			LEFT JOIN '._DB_PREFIX_.'connections_page cp ON (p.id_page = cp.id_page)
-			WHERE p.id_page_type = 1 AND p.id_object = '.(int)$id_product.' AND cp.time_start > \''.pSQL($date).'\'');
+			WHERE p.id_page_type = 3 AND p.id_object = '.(int)$id_product.' AND cp.time_start > \''.pSQL($date).'\'');
 
 			if (isset($nb_people['nb']) && $nb_people['nb'] > 0)
 				$this->smarty->assign('nb_people', (int)$nb_people['nb']);
