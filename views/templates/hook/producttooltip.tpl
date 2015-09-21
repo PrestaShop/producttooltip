@@ -27,7 +27,11 @@
         {if isset($nb_people)}
         $.growl({ldelim}title: '', message: '{if $nb_people == 1}{l s='%d person is currently watching this product.' sprintf=$nb_people mod='producttooltip' js=1}{else}{l s='%d people are currently watching this product.' sprintf=$nb_people mod='producttooltip' js=1}{/if}'{rdelim});
         {/if}
-
+        
+        {if isset($cart_people)}
+        $.growl({ldelim}title: '', message: '{if $cart_people == 1}{l s='%d person is added this product to a cart.' sprintf=$cart_people mod='producttooltip' js=1}{else}{l s='%d people are added this product to a cart.' sprintf=$cart_people mod='producttooltip' js=1}{/if}'{rdelim});
+        {/if}
+        
         {if isset($date_last_order)}
         $.growl({ldelim}title: '', message: '{l s='Last time this product was bought: ' mod='producttooltip' js=1} {dateFormat date=$date_last_order full=1}'{rdelim});
         {/if}
